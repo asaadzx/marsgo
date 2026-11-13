@@ -9,6 +9,17 @@ WORKDIR /app
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
+# Copy streamlit_tour assets into the image for component registration
+RUN python - <<'PY'
+import importlib.util, pathlib, shutil, sys
+spec = importlib.util.find_spec('streamlit_tour')
+if spec and spec.origin:
+    src = pathlib.Path(spec.origin).parent / 'frontend' / 'build'
+    dst = pathlib.Path('/app/streamlit_tour_assets')
+    shutil.copytree(src, dst, dirs_exist_ok=True)
+else:
+    print('streamlit_tour not found', file=sys.stderr)
+PY
 
 COPY . .
 

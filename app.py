@@ -13,16 +13,20 @@ import html
 import folium
 import streamlit as st
 from streamlit_folium import st_folium
-# Safely import streamlit_tour; provide fallback if unavailable
+# Try to import the tour component; if it fails, declare it manually from the installed package assets.
 try:
     from streamlit_tour import st_tour
-except Exception:  # ImportError or StreamlitAPIException
-    def st_tour(*args, **kwargs):
-        """Fallback dummy tour function when streamlit_tour component cannot be loaded.
-        It displays a warning and does nothing else.
-        """
-        st.warning("Guided tour component unavailable; skipping tour.")
-        return None
+except Exception:
+    # Fallback: use pre‑copied assets inside the Docker image.
+    try:
+        import pathlib
+        import streamlit.components.v1 as components
+        asset_dir = pathlib.Path('/app/streamlit_tour_assets')
+        st_tour = components.declare_component('streamlit_tour', path=str(asset_dir))
+    except Exception:
+        # Final silent fallback – no‑op placeholder (no warning).
+        def st_tour(*args, **kwargs):
+            return None
 import json, pathlib
 
 from src import data, routing, suit, terrain, ui, weather
@@ -73,7 +77,7 @@ with open(tour_path) as f:
 
 if st.session_state.show_tour:
     # Attempt to render the tour; if fallback is active it will just warn.
-    st_tour(tour_data["steps"])
+    st_tour(steps=tour_data["steps"])
     st.session_state.show_tour = False
     # Mark tour as completed on disk
     tour_marker = pathlib.Path(__file__).parent / ".tour_completed"
